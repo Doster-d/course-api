@@ -1,0 +1,63 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: FastAPI (uv)",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Python Debugger: FastAPI",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "uvicorn",
+            "args": [
+                "app.main:app",
+                "--reload"
+            ],
+            "jinja": true
+        },
+        {
+            "name": "Python Debugger: Current File",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "uv run ${file}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Python Debugger: FastAPI with Args",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/run.py",
+            "args": [
+                "--host",
+                "0.0.0.0",
+                "--port",
+                "8000",
+                "--reload"
+            ],
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+        {
+            "name": "Python Debugger: Prompt for Args",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "uv run ${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": "${input:args}"
+        }
+    ],
+    "inputs": [
+        {
+            "id": "args",
+            "description": "Command line arguments",
+            "default": "",
+            "type": "promptString"
+        }
+    ]
+}

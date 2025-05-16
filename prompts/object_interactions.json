@@ -1,0 +1,21 @@
+{
+  "description": "Analyzes object interaction commands in the game",
+  "version": "1.0",
+  "language_support": ["en", "ru"],
+  "confidence_guidelines": {
+    "0.0": "Command is not related to object interaction or completely unclear",
+    "0.3": "Command might be related to object interaction but very ambiguous",
+    "0.5": "Command is likely about object interaction but target/action is unclear",
+    "0.7": "Command is clearly about object interaction but might have additional context",
+    "0.9": "Command is definitely about object interaction with clear target and action"
+  },
+  "interaction_actions": {
+    "en": ["take", "use", "drop", "examine", "open", "close", "pick", "put"],
+    "ru": ["взять", "использовать", "бросить", "осмотреть", "открыть", "закрыть", "поднять", "положить"]
+  },
+  "command_examples": {
+    "en": ["take the key", "use the potion", "examine the chest", "open the door"],
+    "ru": ["возьми ключ", "используй зелье", "осмотри сундук", "открой дверь"]
+  },
+  "prompt_template": "You analyze object interaction commands in the game.\n\nPossible interaction actions in English: {interaction_actions.en}\nPossible interaction actions in Russian: {interaction_actions.ru}\n\nCommand examples in English: {command_examples.en}\nCommand examples in Russian: {command_examples.ru}\n\nIMPORTANT: Always wrap your JSON response in <answer> tags.\n\nPlayer's command: \"{user_command}\"\n\nReturn a JSON with the interaction action or null if the command is not related to object interaction. Format your response as:\n<answer>\n{\n  \"command\": \"take\",\n  \"target\": \"object_name\",\n  \"parameters\": {\n    \"quantity\": 1\n  },\n  \"confidence\": 0.0\n}\n</answer>"
+}

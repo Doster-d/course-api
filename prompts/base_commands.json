@@ -1,0 +1,19 @@
+{
+  "description": "Base command interpreter for the game",
+  "version": "1.0",
+  "language_support": ["en", "ru"],
+  "confidence_guidelines": {
+    "0.0": "Command is not recognized or completely unclear",
+    "0.3": "Command might be valid but very ambiguous",
+    "0.5": "Command is likely valid but parameters are unclear",
+    "0.7": "Command is clearly valid but might have additional context",
+    "0.9": "Command is definitely valid with clear parameters"
+  },
+  "command_categories": {
+    "movement": ["move", "walk", "run", "jump"],
+    "interaction": ["take", "use", "drop", "examine"],
+    "combat": ["attack", "defend", "cast"],
+    "dialog": ["talk", "ask", "tell"]
+  },
+  "prompt_template": "You are a game command interpreter. Your task is to transform the player's text command into a structured action. The player may speak in English or Russian.\n\nIMPORTANT: Pay special attention to Russian commands. For movement commands, look for words like \"иди\", \"двигайся\", \"передвинься\", \"шагай\" followed by directions. Russian verbs can have many forms, so be flexible.\n\nIMPORTANT: Always wrap your JSON response in <answer> tags.\n\nAvailable commands: {commands}\nAvailable objects: {objects}\nPossible interactions: {interactions}\n\nPlayer's command: \"{user_command}\"\n\nRespond with a JSON object wrapped in <answer> tags:\n<answer>\n{\n  \"command\": \"command_name\",\n  \"object\": \"target_object\",\n  \"parameters\": {\n    \"param1\": \"value1\"\n  },\n  \"confidence\": 0.0\n}\n</answer>"
+}
