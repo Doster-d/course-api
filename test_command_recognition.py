@@ -112,9 +112,128 @@ async def populate_game_state(session_id: str = "test_session") -> None:
     print(f"Game state populated for session {session_id}")
 
 
+async def test_command_types():
+    """Test recognition of different command types in both English and Russian."""
+    test_cases = [
+        # Movement commands
+        {
+            "text": "go forward",
+            "expected_type": "movement_commands",
+            "language": "en",
+        },
+        {
+            "text": "иди вперед",
+            "expected_type": "movement_commands",
+            "language": "ru",
+        },
+        # Combat commands
+        {
+            "text": "attack the enemy",
+            "expected_type": "combat_commands",
+            "language": "en",
+        },
+        {
+            "text": "атаковать врага",
+            "expected_type": "combat_commands",
+            "language": "ru",
+        },
+        # Dialog commands
+        {
+            "text": "talk to merchant",
+            "expected_type": "dialog_commands",
+            "language": "en",
+        },
+        {
+            "text": "поговорить с торговцем",
+            "expected_type": "dialog_commands",
+            "language": "ru",
+        },
+        # Object interaction commands
+        {
+            "text": "pick up the key",
+            "expected_type": "object_interactions",
+            "language": "en",
+        },
+        {
+            "text": "поднять ключ",
+            "expected_type": "object_interactions",
+            "language": "ru",
+        },
+    ]
+
+    print("\n🔍 Testing command type recognition...")
+
+    for case in test_cases:
+        print(f"\nTesting {case['language'].upper()} command: {case['text']}")
+        try:
+            result = await test_command_recognition(case["text"])
+
+            if result["recognized"]:
+                command = result["command"]
+                actual_type = command["type"]
+                confidence = result["confidence"]
+                alternatives = command.get("alternatives", [])
+
+                if actual_type == case["expected_type"]:
+                    print(f"✅ Correct command type: {actual_type}")
+                    print(f"Confidence: {confidence:.2f}")
+                    if alternatives:
+                        print(f"Alternative types: {', '.join(alternatives)}")
+                    print(
+                        f"Command details: {json.dumps(command['details'], indent=2, ensure_ascii=False)}"
+                    )
+                else:
+                    print(
+                        f"❌ Wrong command type: got {actual_type}, expected {case['expected_type']}"
+                    )
+            else:
+                print(
+                    f"❌ Command not recognized: {result.get('error', 'Unknown error')}"
+                )
+
+        except Exception as e:
+            print(f"❌ Test error: {str(e)}")
+
+
+async def test_mixed_language_commands():
+    """Test handling of commands that mix English and Russian."""
+    mixed_commands = [
+        "go вперед",
+        "attack монстра",
+        "talk to торговец",
+        "поднять key",
+    ]
+
+    print("\n🔍 Testing mixed language command handling...")
+
+    for command in mixed_commands:
+        print(f"\nTesting mixed command: {command}")
+        try:
+            result = await test_command_recognition(command)
+
+            if result["recognized"]:
+                print(
+                    f"✅ Command recognized with confidence: {result['confidence']:.2f}"
+                )
+                print(f"Command type: {result['command']['type']}")
+                print(
+                    f"Details: {json.dumps(result['command']['details'], indent=2, ensure_ascii=False)}"
+                )
+            else:
+                print(
+                    f"❌ Command not recognized: {result.get('error', 'Unknown error')}"
+                )
+
+        except Exception as e:
+            print(f"❌ Test error: {str(e)}")
+
+
 async def main():
     parser = argparse.ArgumentParser(description="Test command recognition")
-    parser.add_argument("text", help="Text to recognize commands from")
+    parser.add_argument(
+        "--text",
+        help="Text to recognize commands from (optional)",
+    )
     parser.add_argument(
         "--session",
         default="test_session",
@@ -125,6 +244,16 @@ async def main():
         action="store_true",
         help="Populate game state before testing",
     )
+    parser.add_argument(
+        "--test-types",
+        action="store_true",
+        help="Run command type recognition tests",
+    )
+    parser.add_argument(
+        "--test-mixed",
+        action="store_true",
+        help="Run mixed language command tests",
+    )
 
     args = parser.parse_args()
 
@@ -133,27 +262,22 @@ async def main():
             print("Populating game state...")
             await populate_game_state(args.session)
 
-        print(f"Testing command recognition for: '{args.text}'")
-        result = await test_command_recognition(args.text, args.session)
+        if args.text:
+            print(f"\nTesting specific command: '{args.text}'")
+            result = await test_command_recognition(args.text, args.session)
+            print("\nCommand Recognition Result:")
+            print(json.dumps(result, indent=2, ensure_ascii=False))
 
-        print("\nCommand Recognition Result:")
-        print(json.dumps(result, indent=2))
+        if args.test_types:
+            await test_command_types()
 
-        if result.get("recognized", False):
-            print("\nSuccess! Command recognized.")
-            print(f"Confidence: {result.get('confidence', 0)}")
+        if args.test_mixed:
+            await test_mixed_language_commands()
 
-            command = result.get("command", {})
-            print(f"Command: {command.get('command')}")
-            print(f"Object: {command.get('object')}")
-            if "parameters" in command and command["parameters"]:
-                print("Parameters:")
-                for key, value in command["parameters"].items():
-                    print(f"  {key}: {value}")
-        else:
-            print("\nNo command recognized.")
-            if result.get("error"):
-                print(f"Error: {result.get('error')}")
+        if not any([args.text, args.test_types, args.test_mixed]):
+            print(
+                "No test specified. Use --text, --test-types, or --test-mixed"
+            )
 
     except Exception as e:
         print(f"Error: {str(e)}")

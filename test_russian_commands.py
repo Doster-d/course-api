@@ -31,20 +31,54 @@ OLLAMA_BASE_URL = "http://localhost:11434"
 # Path to prompts directory
 PROMPTS_DIR = os.path.join(os.path.dirname(__file__), "prompts")
 
-# Тестовые русские команды
-TEST_COMMANDS = [
-    "передвинься вперед",
-    "иди вперед",
-    "двигайся влево",
-    "повернись направо",
-    "атаковать волка",
-    "использовать меч",
-    "поговори с торговцем",
-    "открой дверь",
-    "подними ключ",
-    "Подписывайтесь на наш канал, ставьте лайки и пишите комментарии.  на  мой канал, ставьте лайки и подписывайтесь на мои видео.  на мой канал, ставьте лайки и подписывайтесь на мои видео. Передвинуть этот  предмет  на  пять  метров.  вправо."
-]
+# Тестовые русские команды по категориям
+TEST_COMMANDS = {
+    "movement_commands": [
+        "передвинься вперед",
+        "иди вперед на два шага",
+        "двигайся влево",
+        "повернись направо",
+        "беги вперёд",
+        "прыгай вверх",
+        "шагай назад"
+    ],
+    "combat_commands": [
+        "атаковать волка",
+        "защищайся от врага",
+        "используй меч",
+        "блокируй удар",
+        "уворачивайся от атаки",
+        "колдуй огненный шар"
+    ],
+    "dialog_commands": [
+        "поговори с торговцем",
+        "спроси о задании",
+        "поприветствуй стражника",
+        "попрощайся с торговцем",
+        "скажи привет",
+        "спроси про товары"
+    ],
+    "object_interactions": [
+        "открой дверь",
+        "подними ключ",
+        "осмотри сундук",
+        "возьми меч",
+        "используй зелье",
+        "брось камень"
+    ]
+}
 
+# Смешанные команды для тестирования
+MIXED_COMMANDS = [
+    "go вперед",
+    "attack монстра",
+    "talk to торговец",
+    "поднять key",
+    "use меч",
+    "двигайся forward",
+    "cast огненный шар",
+    "open дверь"
+]
 
 def load_prompt(prompt_name):
     """Load a prompt from the prompts directory."""
@@ -120,109 +154,133 @@ def check_ollama_status():
         return False
 
 
-async def test_command_recognition():
-    """Test command recognition for Russian commands."""
-    print("\n🔍 Testing Russian command recognition...")
-    
-    # Test each command
-    for command in TEST_COMMANDS:
-        print(f"\nTesting command: {command}")
-        
-        # Test with each prompt type
-        prompt_types = [
-            "movement_commands",
-            "object_interactions",
-            "combat_commands",
-            "dialog_commands",
-            "base_commands"
-        ]
-        
-        for prompt_type in prompt_types:
-            # Load and prepare the prompt
-            prompt_template = load_prompt(prompt_type)
-            if not prompt_template:
-                print(f"❌ Failed to load {prompt_type}.json prompt")
-                continue
-                
-            # Replace the placeholder for user_command
-            prompt = prompt_template.replace("{user_command}", command)
-            
-            # Send request to Ollama
-            payload = {
-                "model": "qwen3:0.6b",
-                "prompt": prompt,
-                "stream": False
-            }
-            
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with session.post(f"{OLLAMA_BASE_URL}/api/generate", json=payload) as response:
-                        if response.status == 200:
-                            result = await response.json()
-                            response_text = result.get("response", "")
-                            
-                            # Extract JSON from response
-                            try:
-                                # Find content between <answer> tags
-                                answer_match = re.search(r"<answer>(.*?)</answer>", response_text, re.DOTALL)
-                                if answer_match:
-                                    command_data = json.loads(answer_match.group(1))
-                                    confidence = command_data.get("confidence", 0.0)
-                                    
-                                    print(f"✅ {prompt_type}: Confidence {confidence:.2f}")
-                                    print(f"Command data: {json.dumps(command_data, indent=2, ensure_ascii=False)}")
-                                else:
-                                    print(f"❌ {prompt_type}: No valid response format")
-                            except json.JSONDecodeError:
-                                print(f"❌ {prompt_type}: Failed to parse JSON response")
-                        else:
-                            print(f"❌ {prompt_type}: API error {response.status}")
-            except Exception as e:
-                print(f"❌ {prompt_type}: Error {str(e)}")
-
-
-async def test_response_format():
-    """Test the raw response format from Ollama for a command recognition prompt."""
-    print("\n🔍 Testing Ollama response format...")
-
-    # Load the movement_commands prompt and replace placeholders
-    prompt_template = load_prompt("movement_commands")
-    if not prompt_template:
-        print("❌ Failed to load movement_commands.json prompt")
-        return False
-
-    # Replace the placeholder for user_command
-    prompt = prompt_template.replace("{user_command}", "передвинься назад")
-
-    payload = {"model": "qwen3:0.6b", "prompt": prompt, "stream": False}
-    url = f"{OLLAMA_BASE_URL}/api/generate"
-
+async def test_command_recognition(command: str) -> dict:
+    """Test command recognition for a single command."""
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(url, json=payload) as response:
+            async with session.post(
+                f"{API_BASE_URL}/api/commands/recognize",
+                json={"text": command}
+            ) as response:
                 if response.status == 200:
-                    result = await response.json()
-                    response_text = result.get("response", "")
-                    print("\nRaw response:")
-                    print(response_text)
-                    return True
+                    return await response.json()
                 else:
-                    print(f"❌ API error: {response.status}")
-                    return False
+                    error = await response.text()
+                    raise Exception(f"API error: {response.status} - {error}")
     except Exception as e:
-        print(f"❌ Error: {str(e)}")
-        return False
+        logger.error(f"Error testing command: {str(e)}")
+        return {
+            "recognized": False,
+            "error": str(e),
+            "confidence": 0.0
+        }
+
+
+async def test_command_category(category: str, commands: list):
+    """Test a category of commands."""
+    print(f"\n🔍 Testing {category}...")
+    
+    results = {
+        "total": len(commands),
+        "recognized": 0,
+        "correct_type": 0,
+        "avg_confidence": 0.0
+    }
+    
+    for command in commands:
+        print(f"\nTesting: {command}")
+        result = await test_command_recognition(command)
+        
+        if result["recognized"]:
+            results["recognized"] += 1
+            command_type = result["command"]["type"]
+            confidence = result["confidence"]
+            results["avg_confidence"] += confidence
+            
+            if command_type == category:
+                results["correct_type"] += 1
+                print(f"✅ Correct type ({confidence:.2f}): {command_type}")
+                print(f"Details: {json.dumps(result['command']['details'], indent=2, ensure_ascii=False)}")
+            else:
+                print(f"❌ Wrong type ({confidence:.2f}): got {command_type}, expected {category}")
+        else:
+            print(f"❌ Not recognized: {result.get('error', 'Unknown error')}")
+    
+    if results["recognized"] > 0:
+        results["avg_confidence"] /= results["recognized"]
+    
+    print(f"\n📊 Category Results for {category}:")
+    print(f"Total commands: {results['total']}")
+    print(f"Recognized: {results['recognized']} ({results['recognized']/results['total']*100:.1f}%)")
+    print(f"Correct type: {results['correct_type']} ({results['correct_type']/results['total']*100:.1f}%)")
+    print(f"Average confidence: {results['avg_confidence']:.2f}")
+    
+    return results
+
+
+async def test_mixed_language_commands():
+    """Test mixed language command handling."""
+    print("\n🔍 Testing mixed language commands...")
+    
+    results = {
+        "total": len(MIXED_COMMANDS),
+        "recognized": 0,
+        "avg_confidence": 0.0
+    }
+    
+    for command in MIXED_COMMANDS:
+        print(f"\nTesting: {command}")
+        result = await test_command_recognition(command)
+        
+        if result["recognized"]:
+            results["recognized"] += 1
+            confidence = result["confidence"]
+            results["avg_confidence"] += confidence
+            
+            print(f"✅ Recognized ({confidence:.2f}): {result['command']['type']}")
+            print(f"Details: {json.dumps(result['command']['details'], indent=2, ensure_ascii=False)}")
+        else:
+            print(f"❌ Not recognized: {result.get('error', 'Unknown error')}")
+    
+    if results["recognized"] > 0:
+        results["avg_confidence"] /= results["recognized"]
+    
+    print(f"\n📊 Mixed Language Results:")
+    print(f"Total commands: {results['total']}")
+    print(f"Recognized: {results['recognized']} ({results['recognized']/results['total']*100:.1f}%)")
+    print(f"Average confidence: {results['avg_confidence']:.2f}")
+    
+    return results
 
 
 async def main():
     """Main test function."""
     print("🚀 Starting Russian command recognition tests...")
     
-    # Test command recognition
-    await test_command_recognition()
+    # Check services
+    if not check_api_health() or not check_ollama_status():
+        print("❌ Service checks failed. Please ensure all services are running.")
+        return
     
-    # Test response format
-    await test_response_format()
+    # Test each category
+    overall_results = {}
+    for category, commands in TEST_COMMANDS.items():
+        overall_results[category] = await test_command_category(category, commands)
+    
+    # Test mixed language commands
+    overall_results["mixed"] = await test_mixed_language_commands()
+    
+    # Print overall summary
+    print("\n📈 Overall Test Summary:")
+    total_commands = sum(r["total"] for r in overall_results.values())
+    total_recognized = sum(r["recognized"] for r in overall_results.values())
+    total_correct = sum(r.get("correct_type", 0) for r in overall_results.values())
+    avg_confidence = sum(r["avg_confidence"] * r["recognized"] for r in overall_results.values()) / total_recognized if total_recognized > 0 else 0
+    
+    print(f"Total commands tested: {total_commands}")
+    print(f"Total recognized: {total_recognized} ({total_recognized/total_commands*100:.1f}%)")
+    print(f"Total correct type: {total_correct} ({total_correct/total_commands*100:.1f}%)")
+    print(f"Overall average confidence: {avg_confidence:.2f}")
     
     print("\n✨ Tests completed!")
 

@@ -21,7 +21,7 @@ async def test_command_recognition_service_init():
     assert "object_interactions" in service.prompts
     assert "combat_commands" in service.prompts
     assert "dialog_commands" in service.prompts
-    
+
     # Check prompt data structure
     for prompt_name in service.prompt_data:
         prompt_data = service.prompt_data[prompt_name]
@@ -83,7 +83,7 @@ async def test_prepare_object_prompt():
 async def test_recognize_command():
     """Test command recognition with different command types."""
     service = CommandRecognitionService()
-    
+
     # Test movement command
     movement_result = await service.recognize_command(
         "go forward",
@@ -91,13 +91,13 @@ async def test_recognize_command():
             "commands": ["go", "take", "use"],
             "objects": ["sword", "potion"],
             "interactions": ["open", "close"],
-        }
+        },
     )
     assert isinstance(movement_result, dict)
     assert "recognized" in movement_result
     assert "confidence" in movement_result
     assert "command" in movement_result
-    
+
     # Test object interaction command
     object_result = await service.recognize_command(
         "take the sword",
@@ -105,13 +105,13 @@ async def test_recognize_command():
             "commands": ["go", "take", "use"],
             "objects": ["sword", "potion"],
             "interactions": ["open", "close"],
-        }
+        },
     )
     assert isinstance(object_result, dict)
     assert "recognized" in object_result
     assert "confidence" in object_result
     assert "command" in object_result
-    
+
     # Test invalid command
     invalid_result = await service.recognize_command(
         "this is not a command",
@@ -119,7 +119,7 @@ async def test_recognize_command():
             "commands": ["go", "take", "use"],
             "objects": ["sword", "potion"],
             "interactions": ["open", "close"],
-        }
+        },
     )
     assert isinstance(invalid_result, dict)
     assert not invalid_result["recognized"]

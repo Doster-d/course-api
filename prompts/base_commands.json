@@ -1,19 +1,43 @@
 {
-  "description": "Base command interpreter for the game",
+  "description": "Command router that determines which specialized agent should handle the command",
   "version": "1.0",
   "language_support": ["en", "ru"],
   "confidence_guidelines": {
-    "0.0": "Command is not recognized or completely unclear",
-    "0.3": "Command might be valid but very ambiguous",
-    "0.5": "Command is likely valid but parameters are unclear",
-    "0.7": "Command is clearly valid but might have additional context",
-    "0.9": "Command is definitely valid with clear parameters"
+    "0.0": "Cannot determine command type at all",
+    "0.3": "Command type is very ambiguous",
+    "0.5": "Multiple possible command types",
+    "0.7": "Command type is clear but might have mixed elements",
+    "0.9": "Command type is absolutely clear"
   },
-  "command_categories": {
-    "movement": ["move", "walk", "run", "jump"],
-    "interaction": ["take", "use", "drop", "examine"],
-    "combat": ["attack", "defend", "cast"],
-    "dialog": ["talk", "ask", "tell"]
+  "command_types": {
+    "movement_commands": {
+      "description": "Commands related to movement and navigation",
+      "keywords": {
+        "en": ["go", "move", "walk", "run", "jump", "turn"],
+        "ru": ["идти", "двигаться", "ходить", "бежать", "прыгать", "повернуть", "передвинуться", "шагай", "беги"]
+      }
+    },
+    "combat_commands": {
+      "description": "Commands related to combat and fighting",
+      "keywords": {
+        "en": ["attack", "fight", "defend", "block", "dodge", "cast"],
+        "ru": ["атаковать", "сражаться", "защищаться", "блокировать", "уворачиваться", "колдовать", "атакуй", "защищайся"]
+      }
+    },
+    "dialog_commands": {
+      "description": "Commands related to conversation and dialogue",
+      "keywords": {
+        "en": ["talk", "speak", "ask", "tell", "greet", "farewell"],
+        "ru": ["говорить", "разговаривать", "спросить", "сказать", "приветствовать", "прощаться", "поговори", "спроси"]
+      }
+    },
+    "object_interactions": {
+      "description": "Commands related to object interaction",
+      "keywords": {
+        "en": ["take", "use", "open", "close", "examine", "pick", "drop"],
+        "ru": ["взять", "использовать", "открыть", "закрыть", "осмотреть", "поднять", "бросить", "подними", "возьми", "открой"]
+      }
+    }
   },
-  "prompt_template": "You are a game command interpreter. Your task is to transform the player's text command into a structured action. The player may speak in English or Russian.\n\nIMPORTANT: Pay special attention to Russian commands. For movement commands, look for words like \"иди\", \"двигайся\", \"передвинься\", \"шагай\" followed by directions. Russian verbs can have many forms, so be flexible.\n\nIMPORTANT: Always wrap your JSON response in <answer> tags.\n\nAvailable commands: {commands}\nAvailable objects: {objects}\nPossible interactions: {interactions}\n\nPlayer's command: \"{user_command}\"\n\nRespond with a JSON object wrapped in <answer> tags:\n<answer>\n{\n  \"command\": \"command_name\",\n  \"object\": \"target_object\",\n  \"parameters\": {\n    \"param1\": \"value1\"\n  },\n  \"confidence\": 0.0\n}\n</answer>"
+  "prompt_template": "You are a command router for a game that supports both English and Russian commands. Your task is to analyze the player's command and determine which specialized agent should handle it.\n\nCommand types available:\n- movement_commands: For movement and navigation\n  English examples: go forward, move left, turn right\n  Russian examples: иди вперед, двигайся влево, повернись направо\n\n- combat_commands: For combat and fighting\n  English examples: attack enemy, defend, cast spell\n  Russian examples: атаковать врага, защищайся, колдуй заклинание\n\n- dialog_commands: For conversations\n  English examples: talk to merchant, ask about quest\n  Russian examples: поговори с торговцем, спроси о задании\n\n- object_interactions: For object manipulation\n  English examples: take key, open door, examine chest\n  Russian examples: подними ключ, открой дверь, осмотри сундук\n\nIMPORTANT LANGUAGE HANDLING:\n- The command can be in English, Russian, or mixed\n- Use the appropriate keywords list based on the command language\n- For mixed language commands, check keywords in both languages\n- Do not reduce confidence just because a command is in Russian\n- ALL RESPONSE FIELDS MUST BE IN ENGLISH, regardless of input language\n- Translate any Russian terms to English in your response\n\nIMPORTANT CONFIDENCE SCORING RULES:\n- Set confidence to 0.9 if you're absolutely sure about the command type\n- Set confidence to 0.7 if the command type is clear but might have mixed elements\n- Set confidence to 0.5 if there are multiple possible command types\n- Set confidence to 0.3 if the command type is very ambiguous\n- Set confidence to 0.0 if you can't determine the command type at all\n\nIMPORTANT: Always wrap your JSON response in <answer> tags.\n\nPlayer's command: \"{user_command}\"\n\nRespond with a JSON object wrapped in <answer> tags. ALL FIELDS MUST BE IN ENGLISH:\n<answer>\n{\n  \"command_type\": \"movement_commands\",\n  \"confidence\": 0.9,\n  \"explanation\": \"This is clearly a movement command because it uses the movement verb 'go'/'идти'\",\n  \"alternative_types\": [],\n  \"reasoning\": \"The command is a clear movement instruction\"\n}\n</answer>"
 }
