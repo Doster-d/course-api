@@ -18,7 +18,6 @@ import torch
 
 # Import ASR service
 from app.services.asr_service import (
-    FASTER_WHISPER_AVAILABLE,
     WHISPER_STREAMING_AVAILABLE,
     ASRService,
 )
@@ -42,7 +41,6 @@ def set_debug_mode(enable=False):
     # Set debug level for ASR service logger as well
     logging.getLogger("app.services.asr_service").setLevel(level)
     logging.getLogger("whisper_streaming").setLevel(level)
-    logging.getLogger("faster_whisper").setLevel(level)
 
 
 def list_available_models():
@@ -53,11 +51,6 @@ def list_available_models():
         logger.info("✅ whisper_streaming is available")
     else:
         logger.info("❌ whisper_streaming is NOT available")
-
-    if FASTER_WHISPER_AVAILABLE:
-        logger.info("✅ faster-whisper is available")
-    else:
-        logger.info("❌ faster-whisper is NOT available")
 
     # Check if CUDA is available
     cuda_available = torch.cuda.is_available()
@@ -72,95 +65,6 @@ def list_available_models():
         logger.info(f"Configured Whisper model: {settings.WHISPER_MODEL}")
     except Exception as e:
         logger.error(f"Error loading settings: {str(e)}")
-
-
-def test_asr_direct(audio_file, source_language="ru", target_language="ru"):
-    """Test ASR directly with faster-whisper without going through streaming interface,
-    to avoid the VAD tensor type issues.
-
-    Args:
-        audio_file: Path to the audio file to test
-        source_language: Source language code
-        target_language: Target language code
-    """
-    if not os.path.exists(audio_file):
-        logger.error(f"Audio file not found: {audio_file}")
-        return None
-
-    logger.info(f"Testing ASR directly with file: {audio_file}")
-    logger.info(
-        f"Source language: {source_language}, Target language: {target_language}"
-    )
-
-    # Load audio with librosa
-    try:
-        import librosa
-
-        logger.info(f"Loading audio with librosa: {audio_file}")
-        audio_float32, sr = librosa.load(audio_file, sr=16000, mono=True)
-
-        logger.info(
-            f"Loaded audio: sr={sr}Hz, length={len(audio_float32)} samples, duration={len(audio_float32) / sr:.2f}s"
-        )
-    except Exception as e:
-        logger.error(f"Error loading audio with librosa: {str(e)}")
-        logger.error(traceback.format_exc())
-        return None
-
-    # Use the FasterWhisper backend directly
-    if FASTER_WHISPER_AVAILABLE:
-        try:
-            from faster_whisper import WhisperModel
-
-            from app.config import settings
-
-            logger.info("Initializing FasterWhisper model directly...")
-            start_time = time.time()
-
-            model = WhisperModel(
-                model_size_or_path=settings.WHISPER_MODEL,
-                device="cuda" if torch.cuda.is_available() else "cpu",
-                compute_type="float16"
-                if torch.cuda.is_available()
-                else "float32",
-            )
-
-            logger.info(
-                f"Model initialized in {time.time() - start_time:.2f}s"
-            )
-
-            # Transcribe audio without VAD
-            logger.info("Transcribing audio (this may take a while)...")
-            segments, info = model.transcribe(
-                audio_float32,
-                language=source_language,
-                task="transcribe"
-                if source_language == target_language
-                else "translate",
-                vad_filter=False,  # Disable VAD to avoid the tensor type issue
-                beam_size=5,
-            )
-
-            # Get text from segments
-            text_segments = list(segments)  # Force generation to complete
-
-            # Join segments
-            text = " ".join([segment.text for segment in text_segments])
-
-            processing_time = time.time() - start_time
-            logger.info(f"✅ Transcription complete in {processing_time:.2f}s")
-            logger.info(f"Final transcription: {text}")
-
-            return text
-        except Exception as e:
-            logger.error(f"Error in direct FasterWhisper processing: {str(e)}")
-            logger.error(traceback.format_exc())
-            return None
-    else:
-        logger.error(
-            "❌ faster-whisper is not available, cannot run direct test"
-        )
-        return None
 
 
 def test_asr_streaming(audio_file, source_language="ru", target_language="ru"):
@@ -193,7 +97,7 @@ def test_asr_streaming(audio_file, source_language="ru", target_language="ru"):
             buffer_trimming="segment",  # Trim on segment boundaries
             buffer_trimming_sec=15.0,  # Trim buffer if longer than 15 seconds
         )
-        if not asr_service.asr_model and not asr_service.whisper_model:
+        if not asr_service.asr_model:
             logger.error(
                 "Failed to initialize ASR model. Check logs for details."
             )
@@ -341,11 +245,6 @@ def main():
         action="store_true",
         help="Enable debug logging for detailed information",
     )
-    parser.add_argument(
-        "--direct",
-        action="store_true",
-        help="Use direct FasterWhisper instead of streaming interface",
-    )
 
     args = parser.parse_args()
 
@@ -361,10 +260,7 @@ def main():
         logger.error("Please provide an audio file path with --audio")
         return
 
-    if args.direct:
-        test_asr_direct(args.audio, args.source_lang, args.target_lang)
-    else:
-        test_asr_streaming(args.audio, args.source_lang, args.target_lang)
+    test_asr_streaming(args.audio, args.source_lang, args.target_lang)
 
 
 if __name__ == "__main__":
