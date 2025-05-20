@@ -1,1 +1,1 @@
-# Models package initialization file
+"""Models package initialization file."""

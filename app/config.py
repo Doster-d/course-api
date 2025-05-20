@@ -4,6 +4,11 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
+    """Application configuration settings.
+    
+    This class defines all configuration parameters for the application,
+    loaded from environment variables with sensible defaults.
+    """
     # App Configuration
     APP_NAME: str = "Game ASR and Command API"
     DEBUG: bool = os.getenv("DEBUG", "False").lower() in ("true", "1", "t")
@@ -31,6 +36,8 @@ class Settings(BaseSettings):
     CUDA_VISIBLE_DEVICES: str = os.getenv("CUDA_VISIBLE_DEVICES", None)
 
     class Config:
+        """Pydantic configuration.
+        """
         env_file = ".env"
         case_sensitive = True
 

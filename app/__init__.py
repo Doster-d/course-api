@@ -1,1 +1,1 @@
-# App package initialization file
+"""App package initialization file."""

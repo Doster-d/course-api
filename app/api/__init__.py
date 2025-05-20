@@ -1,1 +1,1 @@
-# API package initialization file
+"""API package initialization file."""

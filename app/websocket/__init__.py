@@ -1,1 +1,1 @@
-# WebSocket package initialization file
+"""WebSocket package initialization file."""

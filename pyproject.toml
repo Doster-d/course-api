@@ -28,6 +28,8 @@ dependencies = [
     "torch>=2.7.0",
     "torchvision>=0.22.0",
     "torchaudio>=2.7.0",
+    "sphinx>=7.3.7",
+    "sphinx-autoapi>=3.5.0",
 ]
 
 [project.optional-dependencies]
